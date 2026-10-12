@@ -1,0 +1,3 @@
+name = "whale_orders"
+main = "cl_binance_whale_orders.js" # Hakikisha hapa inaendana na jina la faili lako la JavaScript (mfano: index.js au src/index.js)
+compatibility_date = "2026-10-12"
