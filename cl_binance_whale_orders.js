@@ -1,10 +1,7 @@
-// Cloudflare Worker Script kwa ajili ya Binance Order Walls API
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Ruhusu CORS kwa ajili ya Dashboard yako ya front-end
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -16,11 +13,9 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Endpoint ya kupata data za JSON (Badala ya Express /json-data)
+    // Endpoint ya kupata data kwenye Frontend
     if (url.pathname === '/json-data') {
       try {
-        // Hapa tunasoma data kutoka kwenye Cloudflare D1 Database (env.DB)
-        // Hakikisha umeunda D1 database kwenye Cloudflare Dashboard yako na kuipa jina la DB
         const { results } = await env.DB.prepare(
           "SELECT * FROM order_walls ORDER BY price DESC"
         ).all();
@@ -43,38 +38,57 @@ export default {
             first_seen_iso: new Date(row.first_seen).toISOString()
           };
 
-          if (row.type === 'bid') {
-            bids.push(orderData);
-          } else {
-            asks.push(orderData);
-          }
+          if (row.type === 'bid') bids.push(orderData);
+          else asks.push(orderData);
         });
 
-        // Kupanga asks kwa kupanda
         asks.sort((a, b) => a.price - b.price);
 
-        const responseData = {
+        return new Response(JSON.stringify({
           status: "success",
           timestamp: new Date().toISOString(),
           bids_count: bids.length,
           asks_count: asks.length,
           bids: bids,
           asks: asks
-        };
-
-        return new Response(JSON.stringify(responseData), { headers: corsHeaders });
+        }), { headers: corsHeaders });
 
       } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { 
-          status: 500, 
-          headers: corsHeaders 
-        });
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
       }
     }
 
-    return new Response(JSON.stringify({ message: "Binance Worker Inafanya Kazi Sawa!" }), { headers: corsHeaders });
+    // Amri ya kuamsha au kuangalia hali ya Durable Object
+    let id = env.BINANCE_DO.idFromName("binance_singleton");
+    let stub = env.BINANCE_DO.get(id);
+    let res = await stub.fetch(request);
+    let text = await res.text();
+
+    return new Response(JSON.stringify({ message: "Worker inafanya kazi", status: text }), { headers: corsHeaders });
+  },
+
+  // Hii inafanya kazi kama Cron Trigger (ikiwa imewekwa kwenye wrangler.toml) kuamsha kazi kila mara
+  async scheduled(event, env, ctx) {
+    let id = env.BINANCE_DO.idFromName("binance_singleton");
+    let stub = env.BINANCE_DO.get(id);
+    await stub.fetch("https://internal/ping");
   }
 };
+
+// --- DURABLE OBJECT CLASS ---
+export class BinanceDurableObject {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request) {
+    // Hapa ndipo unaweza kuweka mantiki ya kuunganisha au kuomba data za Binance REST API kila ikiamka,
+    // au kuendesha mchakato wa kuchuja kuta za fedha na kuzihifadhi kwenye env.DB
+    
+    return new Response("Durable Object imeamshwa na inafanya kazi!");
+  }
+}
 
 function formatAmount(amount) {
     if (amount >= 1000000) return "$" + (amount / 1000000).toFixed(2).replace(/\.00$/, "").replace(/(\.[1-9])0$/, "$1") + "M";
