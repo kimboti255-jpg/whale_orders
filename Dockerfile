@@ -22,10 +22,7 @@ RUN chown -R www-data:www-data /var/www/html \
 # 5. Sakinisha vifurushi vya Node.js (kama package.json ipo)
 RUN if [ -f package.json ]; then npm install; fi
 
-# 6. Badilisha Port ya Apache kwenda 7860 ili iendane na mifumo ya wingu
-RUN sed -i 's/80/7860/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
-
 EXPOSE 7860
 
-# 7. Amri ya kuachia Node.js ianze kukimbia, kisha Apache iwake
-CMD sh -c "node index.js & apache2-foreground"
+# 6. Amri ya kuendesha Node.js pekee (kuondoa mgongano wa EADDRINUSE na Apache)
+CMD ["node", "index.js"]
