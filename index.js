@@ -28,7 +28,7 @@ db.serialize(() => {
 });
 
 // 2. Kuunganisha Binance WebSocket
-const endpoint = "wss://fstream.binance.com/ws/btcusdt@depth@100ms";
+const endpoint = "wss://fstream.binance.com/ws/dogeusdt@depth@100ms";
 let ws;
 
 function connectWebSocket() {
