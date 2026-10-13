@@ -4,7 +4,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 7860;
 
 // 1. Database ya SQLite
 const dbPath = path.join(__dirname, 'walls.db');

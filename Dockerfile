@@ -15,9 +15,9 @@ WORKDIR /var/www/html
 # 3. Nakili mafaili yote ya mradi wako ndani ya kontena
 COPY . /var/www/html/
 
-# 4. Weka ruhusa (permissions) sahihi kwa ajili ya Apache na hifadhi ya SQLite
+# 4. Weka ruhusa kamili za kuandika kwa ajili ya SQLite na Apache
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+    && chmod -R 777 /var/www/html
 
 # 5. Sakinisha vifurushi vya Node.js (kama package.json ipo)
 RUN if [ -f package.json ]; then npm install; fi
@@ -27,5 +27,5 @@ RUN sed -i 's/80/7860/g' /etc/apache2/ports.conf /etc/apache2/sites-available/00
 
 EXPOSE 7860
 
-# 7. Amri ya kuachia Node.js (index.js) ianze kukimbia nyuma ya pazia, kisha Apache iwake
+# 7. Amri ya kuachia Node.js ianze kukimbia, kisha Apache iwake
 CMD sh -c "node index.js & apache2-foreground"
