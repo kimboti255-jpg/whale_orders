@@ -91,6 +91,12 @@ function formatAmount(amount) {
     return "$" + Math.round(amount);
 }
 
+// Ujumbe wa ukurasa wa mwanzo ili kuondoa hitilafu ya Cannot GET /
+app.get('/', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send('Server inafanya kazi vizuri! Nenda kwenye <a href="/json-data">/json-data</a> kuona taarifa za oda.');
+});
+
 // 3. API Endpoint /json-data
 app.get('/json-data', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
