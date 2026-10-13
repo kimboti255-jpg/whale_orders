@@ -6,11 +6,11 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-// 1. Database ya SQLite
-const dbPath = path.join(__dirname, 'walls.db');
+// 1. Database ya SQLite ndani ya /tmp ili kuepusha kabisa hitilafu ya ruhusa za hifadhidata
+const dbPath = path.join('/tmp', 'walls.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error("Hitilafu ya SQLite DB:", err.message);
-    else console.log("SQLite Database imeunganishwa vizuri.");
+    else console.log("SQLite Database imeunganishwa vizuri kwenye /tmp/walls.db.");
 });
 
 db.serialize(() => {
