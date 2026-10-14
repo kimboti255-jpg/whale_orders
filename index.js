@@ -53,7 +53,7 @@ function connectWebSocket() {
                     let thamani = bei * kiasi;
                     let elementId = `${type}-${bei}`;
 
-                    if (thamani >= 999999) {
+                    if (thamani >= 300000) {
                         db.run(`
                             INSERT INTO order_walls (id, type, price, amount, value, first_seen, last_seen)
                             VALUES (?, ?, ?, ?, ?, ?, ?)
