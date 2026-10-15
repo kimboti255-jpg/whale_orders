@@ -6,11 +6,11 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-// 1. Database ya SQLite ndani ya /tmp ili kuepusha kabisa hitilafu ya ruhusa za hifadhidata
-const dbPath = path.join('/tmp', 'walls.db');
+// 1. Database ya SQLite ndani ya /tmp (Tumebadilisha jina kuwa binance_walls.db ili isigongane na faili lingine)
+const dbPath = path.join('/tmp', 'binance_walls.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error("Hitilafu ya SQLite DB:", err.message);
-    else console.log("SQLite Database imeunganishwa vizuri kwenye /tmp/walls.db.");
+    else console.log("SQLite Database imeunganishwa vizuri kwenye /tmp/binance_walls.db.");
 });
 
 db.serialize(() => {
