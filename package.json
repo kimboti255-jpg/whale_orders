@@ -1,17 +1,9 @@
 {
-  "name": "oda-kubwa",
+  "name": "whale_orders",
   "version": "1.0.0",
-  "description": "Whale Smart Monitor for BTCUSDT Orders",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js & node coinbase.js"
+    "start": "node index.js"
   },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.18.2",
-    "sqlite3": "^5.1.6",
-    "ws": "^8.14.0"
-  },
-  "author": "",
-  "license": "ISC"
+  "dependencies": {}
 }
