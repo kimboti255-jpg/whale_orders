@@ -28,11 +28,11 @@ db.serialize(() => {
     `);
 });
 
-// 2. Kuunganisha kupitia WebSocket (wss:// badala ya https://)
+// 2. Kuunganisha kupitia WebSocket (wss://)
 const endpoint = "wss://coinbase.simotizi255.workers.dev";
 
 function connectWebSocket() {
-    console.w("Inajaribu kuunganisha kwenye Cloudflare Worker WebSocket...");
+    console.log("Inajaribu kuunganisha kwenye Cloudflare Worker WebSocket...");
     const ws = new WebSocket(endpoint);
 
     ws.on('open', () => {
