@@ -30,11 +30,18 @@ db.serialize(() => {
     `);
 });
 
-// 2. Kuunganisha kwenye API mpya badala ya Binance WebSocket ya awali
+// 2. Kuunganisha kwenye API yako ya Cloudflare Worker
 const endpoint = "https://coinbase.simotizi255.workers.dev";
 
 function fetchApiData() {
-    https.get(endpoint, (res) => {
+    // Kuongeza options na User-Agent ili kuepuka kuzuiwa na Cloudflare
+    const options = {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NodeJS-Client'
+        }
+    };
+
+    https.get(endpoint, options, (res) => {
         let data = '';
 
         res.on('data', (chunk) => {
@@ -43,6 +50,12 @@ function fetchApiData() {
 
         res.on('end', () => {
             try {
+                // Angalia kama ombi limefanikiwa (Status 200) kabla ya kusoma JSON
+                if (res.statusCode !== 200) {
+                    console.error(`[${new Date().toLocaleTimeString()}] Hitilafu kutoka Worker: HTTP Status ${res.statusCode} - ${data}`);
+                    return;
+                }
+
                 let jsonData = JSON.parse(data);
                 const now = Date.now();
 
@@ -73,7 +86,7 @@ function fetchApiData() {
                                     `, [elementId, exName, type, bei, kiasi, thamani, now, now]);
                                 } else {
                                     db.run(`DELETE FROM order_walls WHERE id = ?`, [elementId]);
-                                });
+                                }
                             });
                         }
 
@@ -103,10 +116,10 @@ function formatAmount(amount) {
 // Ujumbe wa ukurasa wa mwanzo ili kuondoa hitilafu ya Cannot GET /
 app.get('/', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.send('Server inafanya kazi vizuri! Nenda kwenye <a href="/json-data-two">/json-data</a> kuona taarifa za oda.');
+    res.send('Server inafanya kazi vizuri! Nenda kwenye <a href="/json-data-two">/json-data-two</a> kuona taarifa za oda.');
 });
 
-// 3. API Endpoint /json-data
+// 3. API Endpoint /json-data-two
 app.get('/json-data-two', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
