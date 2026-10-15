@@ -1,12 +1,11 @@
 {
   "name": "whale_orders",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "coinbase.js",
   "scripts": {
-    "start": "concurrently \"node coinbase.js\" \"node index.js\""
+    "start": "node coinbase.js"
   },
   "dependencies": {
-    "concurrently": "^8.2.2",
     "express": "^4.19.2",
     "sqlite3": "^5.1.7",
     "ws": "^8.16.0"
