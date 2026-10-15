@@ -91,6 +91,10 @@ function connectWebSocket() {
                         db.run(query, [exchangeName, ...activeIds], (err) => {
                             if (err) console.error("Hitilafu wakati wa kusafisha oda zilizofutwa:", err.message);
                         });
+                    } else {
+                        db.run(`DELETE FROM order_walls WHERE exchange = ?`, [exchangeName], (err) => {
+                            if (err) console.error("Hitilafu wakati wa kusafisha oda zote za soko:", err.message);
+                        });
                     }
                 }
             }
