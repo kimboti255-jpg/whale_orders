@@ -1,9 +1,9 @@
 {
   "name": "whale_orders",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "coinbase.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node coinbase.js"
   },
   "dependencies": {}
 }
