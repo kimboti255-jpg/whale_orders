@@ -2,13 +2,11 @@ const express = require('express');
 const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const https = require('https');
-const http = require('http');
 
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-// 1. Database ya SQLite ndani ya /tmp ili kuepusha kabisa hitilafu ya ruhusa za hifadhidata
+// 1. Database ya SQLite ndani ya /tmp ili kuepusha hitilafu za ruhusa
 const dbPath = path.join('/tmp', 'walls.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error("Hitilafu ya SQLite DB:", err.message);
@@ -30,82 +28,74 @@ db.serialize(() => {
     `);
 });
 
-// 2. Kuunganisha kwenye API yako ya Cloudflare Worker
-const endpoint = "https://coinbase.simotizi255.workers.dev";
+// 2. Kuunganisha kupitia WebSocket (wss:// badala ya https://)
+const endpoint = "wss://coinbase.simotizi255.workers.dev";
 
-function fetchApiData() {
-    // Kuongeza options na User-Agent ili kuepuka kuzuiwa na Cloudflare
-    const options = {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NodeJS-Client'
-        }
-    };
+function connectWebSocket() {
+    console.w("Inajaribu kuunganisha kwenye Cloudflare Worker WebSocket...");
+    const ws = new WebSocket(endpoint);
 
-    https.get(endpoint, options, (res) => {
-        let data = '';
+    ws.on('open', () => {
+        console.log("🟢 Muunganisho wa WebSocket umefunguliwa kwa mafanikio!");
+    });
 
-        res.on('data', (chunk) => {
-            data += chunk;
-        });
+    ws.on('message', (data) => {
+        try {
+            let jsonData = JSON.parse(data.toString());
+            const now = Date.now();
 
-        res.on('end', () => {
-            try {
-                // Angalia kama ombi limefanikiwa (Status 200) kabla ya kusoma JSON
-                if (res.statusCode !== 200) {
-                    console.error(`[${new Date().toLocaleTimeString()}] Hitilafu kutoka Worker: HTTP Status ${res.statusCode} - ${data}`);
-                    return;
-                }
+            // Kuchakata masoko yaliyopo kwenye data za JSON
+            for (let exchangeKey in jsonData) {
+                if (typeof jsonData[exchangeKey] === 'object' && jsonData[exchangeKey] !== null) {
+                    let marketData = jsonData[exchangeKey];
+                    let bidsData = marketData.bids || [];
+                    let asksData = marketData.asks || [];
+                    let exchangeName = marketData.exchange || exchangeKey.toUpperCase();
 
-                let jsonData = JSON.parse(data);
-                const now = Date.now();
+                    function processOrders(orders, type) {
+                        orders.forEach((order) => {
+                            let bei = Number(order.price);
+                            let kiasi = Number(order.amount);
+                            let thamani = Number(order.value);
+                            let elementId = order.id || `${exchangeName.toLowerCase()}-${type}-${bei}`;
+                            let exName = order.exchange || exchangeName;
 
-                // Kuchakata masoko yaliyopo kwenye API (mfano: okx na coinbase)
-                for (let exchangeKey in jsonData) {
-                    if (typeof jsonData[exchangeKey] === 'object' && jsonData[exchangeKey] !== null) {
-                        let marketData = jsonData[exchangeKey];
-                        let bidsData = marketData.bids || [];
-                        let asksData = marketData.asks || [];
-                        let exchangeName = marketData.exchange || exchangeKey.toUpperCase();
-
-                        function processOrders(orders, type) {
-                            orders.forEach((order) => {
-                                let bei = Number(order.price);
-                                let kiasi = Number(order.amount);
-                                let thamani = Number(order.value);
-                                let elementId = order.id || `${exchangeName.toLowerCase()}-${type}-${bei}`;
-                                let exName = order.exchange || exchangeName;
-
-                                if (thamani >= 100000) {
-                                    db.run(`
-                                        INSERT INTO order_walls (id, exchange, type, price, amount, value, first_seen, last_seen)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                        ON CONFLICT(id) DO UPDATE SET
-                                            amount = excluded.amount,
-                                            value = excluded.value,
-                                            last_seen = excluded.last_seen
-                                    `, [elementId, exName, type, bei, kiasi, thamani, now, now]);
-                                } else {
-                                    db.run(`DELETE FROM order_walls WHERE id = ?`, [elementId]);
-                                }
-                            });
-                        }
-
-                        processOrders(bidsData, "bid");
-                        processOrders(asksData, "ask");
+                            if (thamani >= 100000) {
+                                db.run(`
+                                    INSERT INTO order_walls (id, exchange, type, price, amount, value, first_seen, last_seen)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                    ON CONFLICT(id) DO UPDATE SET
+                                        amount = excluded.amount,
+                                        value = excluded.value,
+                                        last_seen = excluded.last_seen
+                                `, [elementId, exName, type, bei, kiasi, thamani, now, now]);
+                            } else {
+                                db.run(`DELETE FROM order_walls WHERE id = ?`, [elementId]);
+                            }
+                        });
                     }
+
+                    processOrders(bidsData, "bid");
+                    processOrders(asksData, "ask");
                 }
-            } catch (error) {
-                console.error("Error processing API data:", error.message);
             }
-        });
-    }).on('error', (err) => {
-        console.error("API Request Error:", err.message);
+        } catch (error) {
+            console.error("Hitilafu katika kuchakata ujumbe wa WebSocket:", error.message);
+        }
+    });
+
+    ws.on('error', (error) => {
+        console.error("Hitilafu ya WebSocket:", error.message);
+    });
+
+    ws.on('close', (code, reason) => {
+        console.log(`🔴 WebSocket imefungwa (Msimbo: ${code}). Kujaribu tena baada ya sekunde 3...`);
+        setTimeout(connectWebSocket, 3000); // Unganisha tena ikikatika
     });
 }
 
-// Kupata data mpya kila baada ya sekunde 3
-setInterval(fetchApiData, 3000);
-fetchApiData();
+// Anzisha muunganisho wa WebSocket
+connectWebSocket();
 
 function formatAmount(amount) {
     if (amount >= 1000000) return "$" + (amount / 1000000).toFixed(2).replace(/\.00$/, "").replace(/(\.[1-9])0$/, "$1") + "M";
@@ -113,7 +103,7 @@ function formatAmount(amount) {
     return "$" + Math.round(amount);
 }
 
-// Ujumbe wa ukurasa wa mwanzo ili kuondoa hitilafu ya Cannot GET /
+// Ujumbe wa ukurasa wa mwanzo
 app.get('/', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.send('Server inafanya kazi vizuri! Nenda kwenye <a href="/json-data-two">/json-data-two</a> kuona taarifa za oda.');
@@ -165,7 +155,6 @@ app.get('/json-data-two', (req, res) => {
             }
         });
 
-        // Kupanga asks kwa kupanda na bids kwa kushuka kwenye kila soko
         for (let exKey in exchangesResult) {
             exchangesResult[exKey].asks.sort((a, b) => a.price - b.price);
             exchangesResult[exKey].bids.sort((a, b) => b.price - a.price);
